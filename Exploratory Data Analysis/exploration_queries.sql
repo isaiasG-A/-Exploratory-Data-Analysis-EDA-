@@ -87,7 +87,7 @@ SELECT DISTINCT category, subcategory, product_name FROM gold.dim_products
 ------------------------------------------------------------------------------------------------------------
 
 --Magnitude Analysis
-	-- Compare the measure values oby categories
+	-- Compare the measure values by categories
 	    -- It helps us understand the importance of different categories
 
 --Find total customers by countries
@@ -114,7 +114,7 @@ SELECT DISTINCT category, subcategory, product_name FROM gold.dim_products
 	GROUP BY category
 	ORDER BY total_products DESC
 
--- What is the average costs in each category?
+-- What is the average cost in each category?
 	SELECT
 		category,
 		AVG(cost) AS average_cost
@@ -122,8 +122,8 @@ SELECT DISTINCT category, subcategory, product_name FROM gold.dim_products
 	GROUP BY category
 	ORDER BY  average_cost DESC
 
--- Find total revenue is generated for each category
-	-- revenue is the measure or Fact and category is the dimension 
+-- Find total revenue generated for each category
+	-- revenue is the measure or Fact, and category is the dimension 
 	-- TIP: Start with the Fact then LEFT join the dimensions to it.
 	SELECT
 		p.category,
@@ -159,7 +159,45 @@ ORDER BY total_sold_items DESC
 -----------------------------------------------------------------------------------------------
 
 -- Ranking Analysis
+  -- Order the values of dimensions by measure
+      -- Top N Performers | Bottom N Performers
 
+  -- Which 5 Products generate the highest revenue
+  SELECT TOP 5 
+		p.product_name,
+		SUM(f.sales_amount) AS total_product_revenue
+	FROM gold.fact_sales f
+	LEFT JOIN gold.dim_products p
+	ON p.product_key = f.product_key
+	GROUP BY p.product_name
+	ORDER BY total_product_revenue DESC
+
+	-- WINDOW FUNCTIONS: For more flexible and complex queries with extra details
+	    -- We can add more columns, or add different details or types of aggregations.
+		  -- RANK() OVER(ORDER BY SUM(f.sales_amount) DESC) AS rank_products
+		SELECT *
+		FROM(
+			SELECT
+				p.product_name,
+				SUM(f.sales_amount) total_product_revenue,
+				ROW_NUMBER() OVER (ORDER BY SUM(f.sales_amount) DESC) AS rank_products
+			FROM gold.fact_sales f
+			LEFT JOIN gold.dim_products p
+			ON p.product_key = f.product_key
+			GROUP BY p.product_name)t
+		WHERE rank_products <= 5
+
+  -- What are the worst-performing products in terms of sales?
+   SELECT TOP 5 
+		p.product_name,
+		SUM(f.sales_amount) AS total_product_revenue
+	FROM gold.fact_sales f
+	LEFT JOIN gold.dim_products p
+	ON p.product_key = f.product_key
+	GROUP BY p.product_name
+	ORDER BY total_product_revenue 
+
+-------------------------------------------------------------------------------------------------
 SELECT * FROM gold.dim_products
-SELECT * FROM gold.fact_sales
 SELECT * FROM gold.dim_customers
+SELECT * FROM gold.fact_sales
