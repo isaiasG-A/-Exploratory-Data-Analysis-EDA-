@@ -101,6 +101,16 @@ END avg_change
  FROM yearly_product_sales
  ORDER BY product_name, order_year
 
+      
+
+ --Part-To-Whole Analysis
+   -- Analyze how an individual part is performing compared to the overall, allowing us to understand which category
+      -- has the greatest impact on the business. 
+
+      https://youtu.be/SSKVgrwhzus?t=104401
+
+-----------------------------------------------------
+
 -------------------------------------------------------------------------------------------
 SELECT * FROM gold.dim_products
 SELECT * FROM gold.dim_customers
