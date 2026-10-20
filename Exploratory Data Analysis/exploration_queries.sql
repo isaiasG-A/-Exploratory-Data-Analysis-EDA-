@@ -1,9 +1,6 @@
 -- Explore All Objects in the Database
 SELECT * FROM INFORMATION_SCHEMA.TABLES
 
-
-
-
 -- Explore All Columns in the Database
 SELECT * FROM INFORMATION_SCHEMA.COLUMNS
 WHERE TABLE_NAME = 'dim_customers' 
@@ -18,7 +15,7 @@ SELECT DISTINCT category, subcategory, product_name FROM gold.dim_products
 ---------------------------------------------------------------------------------------------------------------------------------------
 
 -- Date Exploration
- -- Identify the earlier and latest dates (boundaries)
+ -- Identify the earliest and latest dates (boundaries)
  -- Understand the scope of data and the timespan.
 
  --Task: Find the date of the first and last order
@@ -68,5 +65,17 @@ SELECT DISTINCT category, subcategory, product_name FROM gold.dim_products
   	SELECT COUNT(customer_key) AS total_customers FROM gold.fact_sales
 
 	--Generate a Report that shows all key metrics of the business
+		-- UNION: Number of columns and data types must be matching
 
 	SELECT 'Total Sales' as measure_name, SUM(sales_amount) AS measure_value FROM gold.fact_sales
+	UNION ALL
+	SELECT 'Total Quantity', SUM(quantity) FROM gold.fact_sales
+	UNION ALL
+	SELECT 'Average Price', AVG(price) AS avg_price FROM gold.fact_sales
+	UNION ALL
+	SELECT 'Total Orders', COUNT(DISTINCT order_number) FROM gold.fact_sales
+	UNION ALL
+	SELECT 'Total Products', COUNT(product_key) FROM gold.dim_products
+	UNION ALL
+	SELECT 'Total Customers', COUNT(customer_key) FROM gold.dim_customers
+
