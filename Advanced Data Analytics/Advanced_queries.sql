@@ -289,3 +289,4 @@ FROM customer_aggregation
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 SELECT * FROM gold.dim_customers
 SELECT * FROM gold.fact_sales
+SELECT * FROM gold.report_customers
