@@ -1,13 +1,13 @@
 -- Change Over Time
-  -- A technique on how to Analyze a measure that evolves over time.
+  -- A technique for analyzing a measure that evolves.
     -- Helps track trends and identify seasonality in your data.
 
-    -- Analyze sales performance overtime
+    -- Analyze sales performance over time
        -- Changes over years
-          -- A high-level overview insights that helps with strategic decision-making.
+          -- A high-level overview of insights that helps with strategic decision-making.
 
     SELECT --DATETRUNC(month/year, date_value): Rounds a date or timestamp to a specific date
-                -- Data will be sorted by the month.
+                -- Data will be sorted by month.
         DATETRUNC(month, order_date) as order_date,
         SUM(sales_amount) as total_sales,
         COUNT(DISTINCT customer_key) as total_customers,
@@ -18,8 +18,8 @@
     ORDER BY DATETRUNC(month, order_date) 
 
     --FORMAT(): For a specific date format
-      -- Output is a string and cant be sorted correctly, only by year and not month.
-    SELECT --MMM: Abvreviation of month name.
+      -- Output is a string and can't be sorted correctly, only by year and not month.
+    SELECT --MMM: Abbreviation of month name.
         FORMAT(order_date, 'yyy--MMM') as order_date,
         SUM(sales_amount) as total_sales,
         COUNT(DISTINCT customer_key) as total_customers,
@@ -33,7 +33,7 @@
 
 -- Cumulative Analysis
     -- Aggregate the data progressively over time.
-    -- Helps to understand whether the bussiness is growing or declining.
+    -- Helps to understand whether the business is growing or declining.
 
     --Calculate the total sales per month
     -- and the running total of sales over time.
@@ -41,7 +41,7 @@
         order_date,
         total_sales,
         --WINDOW FUNCTION
-        --Adding each row's value to the sum of all the previous row's values
+        --Adding each row's value to the sum of all the previous rows' values
         SUM(total_sales) OVER (ORDER BY order_date) AS running_total_sales,
         AVG(avg_price) OVER (ORDER BY order_date)AS moving_average_price
     FROM 
@@ -58,17 +58,17 @@
 -----------------------------------------------------------------------------------------------
 
 -- Performance Analysis
-  -- Comparing the current value to a target value.
-  -- Help measure success and compare performance.
+  -- Compare the current value to a target value.
+  -- Helps measure success and compare performance.
 
     -- Analyze the yearly performance of products
      -- by comparing each product's sales to both its average sales performance and the previous year's sales
-     --AVG needed and previouus sales 
+     --AVG needed and previous sales 
      -- CTE or SUBQUERY can be used
 
  WITH yearly_product_sales AS(
  SELECT 
-    YEAR(f.order_date) AS order_year, --Change YEAR to MONTH to analyses month to month
+    YEAR(f.order_date) AS order_year, --Change YEAR to MONTH to analyze month to month
     p.product_name,
     SUM(f.sales_amount) AS current_sales
  FROM gold.fact_sales f
@@ -109,7 +109,7 @@ END avg_change
       -- Window Functions
         -- To display aggregations at multiple levels in the results, use window functions.
  
-    -- Which categories contribute the msot to overall sales?
+    -- Which categories contribute the most to overall sales?
     WITH category_sales AS (
     SELECT
         category,
@@ -133,7 +133,7 @@ END avg_change
   -- Group the data based on a specific range.
   -- Helps understand the correlation between two measures.
 
-     -- Segment products into cost ranges and count how many producst faill into each segment
+     -- Segment products into cost ranges and count how many products fall into each segment
 
 WITH product_segments AS (
 SELECT 
@@ -157,9 +157,9 @@ ORDER BY total_products DESC
 
         --  Group customers into three segments based on their spending behavior
             -- VIP: at least 12 months of history and spending more than $5,000
-            -- Regular: at least 12 months of history but spending $5.000
+            -- Regular: at least 12 months of history but spending less than $ 5,000
             -- New: lifespan less than 12 months
-        -- And find the total numnber of customers for each group
+        -- And find the total number of customers for each group
            --Regular: Customers with at least 12 months of history but spending $5000 or less
 
 WITH customer_spending AS (
@@ -190,6 +190,101 @@ FROM customer_spending
  GROUP BY customer_segment
  ORDER BY total_customers DESC
 
+ ------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ /*
+ =====================================================================
+ Customer Report
+ =====================================================================
+ 
+ Purpose:
+    - This report consolidates key customer metrics and behaviors
+
+    Highlights:
+        1. Gathers essential fields such as names, ages, and transaction details.
+        2. Segments customer info categories (VIP, Regular, New) and age groups.
+        3. Aggregates customer-level metrics:
+            - total orders
+            - total sales
+            - total quantity purchased
+            - total products
+        4. Calculates valuable KPIs:
+            - recency (months since last order)
+            - average order value
+            - average monthly spend
+ */
+
+ WITH base_query AS (
+ -- 1) Base Query: Retrieves core columns from tables
+ SELECT
+     f.order_number,
+     f.product_key,
+     f.order_date,
+     f.sales_amount,
+     f.quantity,
+     c.customer_key,
+     c.customer_number,
+     CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
+     DATEDIFF(year, c.birthdate, GETDATE()) age
+ FROM gold.fact_sales f
+LEFT JOIN gold.dim_customers c
+ON c.customer_key = f.customer_key
+WHERE order_date IS NOT NULL)
+
+, customer_aggregation AS (
+-- Customer Aggregations: Summarizes key metrics at the customer level
+SELECT
+     customer_key,
+     customer_number,
+     customer_name,
+     age,
+     COUNT(DISTINCT order_number) AS total_orders,
+     SUM(sales_amount) AS total_sales,
+     SUM(quantity) AS total_quantity,
+     COUNT(DISTINCT product_key) AS total_products,
+     MAX(order_date) AS last_order_date,
+     DATEDIFF(month, MIN(order_date), MAX(order_date)) AS lifespan
+ FROM base_query
+ GROUP BY
+    customer_key,
+    customer_number,
+    customer_name,
+    age
+)
+
+SELECT
+customer_key,
+customer_number,
+customer_name,
+age,
+CASE WHEN age < 20 THEN 'Under 20'
+     WHEN age between 20 and 29 THEN '20-29'
+     WHEN age between 30 and 39 THEN '30-39'
+     WHEN age between 40 and 49 THEN '40-49'
+     ELSE '50 and above'
+END AS age_group,
+CASE WHEN lifespan >= 12 AND total_sales > 5000 THEN 'VIP'
+     WHEN lifespan >= 12 AND total_sales <= 5000 THEN 'Regular'
+     ELSE 'New' --Customers with a lifespan  less than 12 months
+END customer_segment,
+last_order_date,
+DATEDIFF (month, last_order_date, GETDATE()) AS recency,
+total_orders,
+total_sales,
+total_quantity,
+total_products,
+lifespan,
+
+-- Compute average order value (AVO)
+CASE WHEN total_orders = 0 THEN 0
+ELSE total_sales / total_orders 
+END AS avg_order_value,
+
+-- Compute average monthly spend: Average Monthly Spending = TotalSales / Nr. of Months
+CASE WHEN lifespan = 0 THEN  total_sales
+     ELSE total_sales / lifespan
+END AS avg_monthly_spend
+FROM customer_aggregation
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 SELECT * FROM gold.dim_customers
